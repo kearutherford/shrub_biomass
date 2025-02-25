@@ -1,0 +1,47 @@
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+shrub_1 <- read_csv("data//shrub_data_JB.csv")
+head(shrub_1)
+```
+
+```{r}
+shrub_2 <- shrub_1 %>%
+  mutate(sp_group = case_when(
+    Species == "AMAL" ~ "AMAL",
+    Species == "ARVI" | Species == "ARPA" ~ "AR.SP",
+    Species == "CECO" | Species == "CECU" | Species == "CEIN" | Species == "CEPI" | Species == "CEVE" ~ "CE.SP",
+    Species == "CHPA" | Species == "CHNA" ~ "CH.SP",
+    Species == "CHSE" ~ "CHSE",
+    Species == "CONU" | Species == "COSE" ~ "CO.SP",
+    Species == "COCO" ~ "COCO",
+    Species == "LEDA" ~ "LEDA",
+    Species == "NODE" ~ "NODE",
+    Species == "QUCH" | Species == "QUKE" | Species == "QUVA" ~ "QU.SP",
+    Species == "RISP" ~ "RI.SP",
+    Species == "SYMP" ~ "SYMP",
+    Species == "CHFO" | Species == "ERCA" | Species == "HEAR" | Species == "NALO" | Species == "PREM" | Species == "PUTR" | Species == "SAEA" | Species == "TODI" ~ "OTHER"))
+```
+
+```{r}
+shrub_2 %>%
+  filter(sp_group == "CE.SP") %>% 
+  group_by(Species) %>% 
+  summarize(n = n()) %>%
+  arrange(n)
+```
+
+```{r}
+shrub_2 %>%
+  group_by(sp_group) %>%
+  summarize(n = n()) %>%
+  arrange
+```
+
+```{r}
+write.csv(shrub_2, "data//shrub_prepped.csv")
+```
+
