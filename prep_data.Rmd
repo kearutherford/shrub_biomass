@@ -9,11 +9,32 @@ head(shrub_1)
 ```
 
 ```{r}
+shrub_1 %>%
+  mutate(n_na = if_else(is.na(Hgt.m), 1, 0)) %>%
+  group_by(Species) %>%
+  summarize(na_ht = sum(n_na),
+            total = n()) %>%
+  arrange(desc(total))
+```
+
+```{r}
+shrub_1 %>%
+  filter(Species == "CECO" | Species == "CECU" | Species == "CEIN" | Species == "CEPI" | Species == "CEVE") %>%
+  group_by(Species) %>%
+  summarize(n = n()) %>%
+  arrange(desc(n))
+```
+
+```{r}
 shrub_2 <- shrub_1 %>%
   mutate(sp_group = case_when(
     Species == "AMAL" ~ "AMAL",
-    Species == "ARVI" | Species == "ARPA" ~ "AR.SP",
-    Species == "CECO" | Species == "CECU" | Species == "CEIN" | Species == "CEPI" | Species == "CEVE" ~ "CE.SP",
+    Species == "ARVI" ~ "ARVI",
+    Species == "ARPA" ~ "ARPA",
+    Species == "CECO" ~ "CECO",
+    Species == "CEVE" ~ "CEVE",
+    Species == "CEIN" ~ "CEIN",
+    Species == "CEPI" | Species == "CECU" ~ "CE.SP",
     Species == "CHPA" | Species == "CHNA" ~ "CH.SP",
     Species == "CHSE" ~ "CHSE",
     Species == "CONU" | Species == "COSE" ~ "CO.SP",
@@ -22,26 +43,16 @@ shrub_2 <- shrub_1 %>%
     Species == "NODE" ~ "NODE",
     Species == "QUCH" | Species == "QUKE" | Species == "QUVA" ~ "QU.SP",
     Species == "RISP" ~ "RI.SP",
-    Species == "SYMP" ~ "SYMP",
-    Species == "CHFO" | Species == "ERCA" | Species == "HEAR" | Species == "NALO" | Species == "PREM" | Species == "PUTR" | Species == "SAEA" | Species == "TODI" ~ "OTHER"))
-```
-
-```{r}
-shrub_2 %>%
-  filter(sp_group == "CE.SP") %>% 
-  group_by(Species) %>% 
-  summarize(n = n()) %>%
-  arrange(n)
+    Species == "CHFO" | Species == "ERCA" | Species == "HEAR" | Species == "NALO" | Species == "PREM" | Species == "PUTR" | Species == "SAEA" | Species == "TODI" | Species == "SYMP" ~ "OTHER"))
 ```
 
 ```{r}
 shrub_2 %>%
   group_by(sp_group) %>%
   summarize(n = n()) %>%
-  arrange
+   arrange(desc(n))
 ```
 
 ```{r}
 write.csv(shrub_2, "data//shrub_prepped.csv")
 ```
-
