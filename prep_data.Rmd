@@ -18,21 +18,13 @@ shrub_1 %>%
 ```
 
 ```{r}
-shrub_1 %>%
-  filter(Species == "CECO" | Species == "CECU" | Species == "CEIN" | Species == "CEPI" | Species == "CEVE") %>%
-  group_by(Species) %>%
-  summarize(n = n()) %>%
-  arrange(desc(n))
-```
-
-```{r}
 shrub_2 <- shrub_1 %>%
   mutate(sp_group = case_when(
     Species == "AMAL" ~ "AMAL",
     Species == "ARVI" ~ "ARVI",
-    Species == "ARPA" ~ "ARPA",
+    Species == "ARPA" ~ "ARPA", # has missing heights 
     Species == "CECO" ~ "CECO",
-    Species == "CEVE" ~ "CEVE",
+    Species == "CEVE" ~ "CEVE", # has missing heights 
     Species == "CEIN" ~ "CEIN",
     Species == "CEPI" | Species == "CECU" ~ "CE.SP",
     Species == "CHPA" | Species == "CHNA" ~ "CH.SP",
@@ -40,8 +32,8 @@ shrub_2 <- shrub_1 %>%
     Species == "CONU" | Species == "COSE" ~ "CO.SP",
     Species == "COCO" ~ "COCO",
     Species == "LEDA" ~ "LEDA",
-    Species == "NODE" ~ "NODE",
-    Species == "QUCH" | Species == "QUKE" | Species == "QUVA" ~ "QU.SP",
+    Species == "NODE" ~ "NODE", # has no heights 
+    Species == "QUCH" | Species == "QUKE" | Species == "QUVA" ~ "QU.SP", # QUVA has no heights 
     Species == "RISP" ~ "RI.SP",
     Species == "CHFO" | Species == "ERCA" | Species == "HEAR" | Species == "NALO" | Species == "PREM" | Species == "PUTR" | Species == "SAEA" | Species == "TODI" | Species == "SYMP" ~ "OTHER"))
 ```
@@ -50,9 +42,9 @@ shrub_2 <- shrub_1 %>%
 shrub_2 %>%
   group_by(sp_group) %>%
   summarize(n = n()) %>%
-   arrange(desc(n))
+  arrange(desc(n))
 ```
 
 ```{r}
-write.csv(shrub_2, "data//shrub_prepped.csv")
+write_csv(shrub_2, "data//shrub_prepped.csv")
 ```
