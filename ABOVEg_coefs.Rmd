@@ -7,20 +7,20 @@ suppressPackageStartupMessages(library(nlme))
 ```
 
 ```{r}
-data1 <- read_csv("data/shrub_prepped.csv", show_col_types = FALSE) %>%
+shrubs <- read_csv("data/shrub_prepped.csv", show_col_types = FALSE) %>%
   mutate(lnAGL = log(AGL.g),
          lnCA = log(CA.m2),
          lnHT = log(Hgt.m))
 ```
 
 ```{r}
-fits1 <- data.frame(
-  sp_group = c("AMAL", "ARVI"),
-  model = c("M1", "M1"),
-  type = c("GNLS", "GNLS")
+final_fits <- data.frame(
+  sp_group = c("AMAL","ARPA","ARVI","CE.SP","CECO","CEIN","CEVE","CH.SP","CHSE","CO.SP","COCO","LEDA","NODE","QU.SP","RI.SP","OTHER"),
+  model = c("M1","M2","M1","M1","M1","M2","M2","M1","M1","M1","M1","M1","M2","M2","M2","M1"),
+  type = c("GNLS","NLS","GNLS","NLS","NLS","GNLS","GNLS","NLS","GNLS","GNLS","GNLS","GNLS","NLS","NLS","GNLS","NLS")
 )
 
-fits1
+final_fits
 ```
 
 ```{r}
@@ -45,16 +45,16 @@ coef_fn <- function(data, fits) {
       
       if(sp_fit$model[[1]] == "M1") {
         
-        lm_fit <- lm(lnAGL ~ lnCA + lnHT, data = sp_data)
-        b1start <- exp(lm_fit$coef[[1]])
-        b2start <- lm_fit$coef[[2]]
-        b3start <- lm_fit$coef[[3]]
+        lm_fit1 <- lm(lnAGL ~ lnCA + lnHT, data = sp_data)
+        b1start1 <- exp(lm_fit1$coef[[1]])
+        b2start1 <- lm_fit1$coef[[2]]
+        b3start1<- lm_fit1$coef[[3]]
         
         sp_model <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
-                       start = list(b1 = b1start, b2 = b2start, b3 = b3start),
-                       data = sp_data,
-                       weights = varPower(),
-                       control = ctrl_gnls)
+                         start = list(b1 = b1start1, b2 = b2start1, b3 = b3start1),
+                         data = sp_data,
+                         weights = varPower(),
+                         control = ctrl_gnls)
         
         sp_coefs <- data.frame(species = sp_fit$sp_group[[1]],
                                eqn = sp_fit$model[[1]],
@@ -64,8 +64,77 @@ coef_fn <- function(data, fits) {
         
         coef_df <- rbind(coef_df, sp_coefs)
       
+      } else if(sp_fit$model[[1]] == "M2") {
+        
+        lm_fit2 <- lm(lnAGL ~ lnCA, data = sp_data)
+        b1start2 <- exp(lm_fit2$coef[[1]])
+        b2start2 <- lm_fit2$coef[[2]]
+        
+        sp_data_selected <- sp_data %>% select(AGL.g, CA.m2)
+        
+        sp_model <- gnls(AGL.g ~ b1*(CA.m2^b2),
+                         start = list(b1 = b1start2, b2 = b2start2),
+                         data = sp_data_selected,
+                         weights = varPower(),
+                         control = ctrl_gnls)
+        
+        sp_coefs <- data.frame(species = sp_fit$sp_group[[1]],
+                               eqn = sp_fit$model[[1]],
+                               b1 = as.double(sp_model$coef[[1]]),
+                               b2 = as.double(sp_model$coef[[2]]),
+                               b3 = as.double(NA))
+        
+        coef_df <- rbind(coef_df, sp_coefs)
+        
       }
   
+    } else if(sp_fit$type[[1]] == "NLS") {
+      
+      ctrl_nls <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+      
+      if(sp_fit$model[[1]] == "M1") {
+        
+        lm_fit1 <- lm(lnAGL ~ lnCA + lnHT, data = sp_data)
+        b1start1 <- exp(lm_fit1$coef[[1]])
+        b2start1 <- lm_fit1$coef[[2]]
+        b3start1<- lm_fit1$coef[[3]]
+        
+        sp_model <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+                        start = list(b1 = b1start1, b2 = b2start1, b3 = b3start1),
+                        data = sp_data,
+                        control = ctrl_nls)
+        
+        sp_coefs <- data.frame(species = sp_fit$sp_group[[1]],
+                               eqn = sp_fit$model[[1]],
+                               b1 = as.double(summary(sp_model)$coef[1,1]),
+                               b2 = as.double(summary(sp_model)$coef[2,1]),
+                               b3 = as.double(summary(sp_model)$coef[3,1]))
+        
+        coef_df <- rbind(coef_df, sp_coefs)
+      
+      } else if(sp_fit$model[[1]] == "M2") {
+        
+        lm_fit2 <- lm(lnAGL ~ lnCA, data = sp_data)
+        b1start2 <- exp(lm_fit2$coef[[1]])
+        b2start2 <- lm_fit2$coef[[2]]
+        
+        sp_data_selected <- sp_data %>% select(AGL.g, CA.m2)
+        
+        sp_model <- nls(AGL.g ~ b1*(CA.m2^b2),
+                        start = list(b1 = b1start2, b2 = b2start2),
+                        data = sp_data,
+                        control = ctrl_nls)
+        
+        sp_coefs <- data.frame(species = sp_fit$sp_group[[1]],
+                               eqn = sp_fit$model[[1]],
+                               b1 = as.double(summary(sp_model)$coef[1,1]),
+                               b2 = as.double(summary(sp_model)$coef[2,1]),
+                               b3 = as.double(NA))
+        
+        coef_df <- rbind(coef_df, sp_coefs)
+        
+      }
+       
     }
   
   }
@@ -73,7 +142,14 @@ coef_fn <- function(data, fits) {
  return(coef_df)
   
 }
-
-coef_fn(data1, fits1)
 ```
+
+```{r}
+agl_coefs <- coef_fn(shrubs, final_fits)
+```
+
+```{r}
+write_csv(agl_coefs, "data\\agl_coefs.csv")
+```
+
 
