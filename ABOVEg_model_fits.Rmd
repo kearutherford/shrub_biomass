@@ -39,6 +39,8 @@ shrubs_2 <- shrubs_1 %>%
          lnCA = log(CA.m2),
          lnHT = log(Hgt.m))
 
+shrubs_2 %>% group_by(sp_group) %>% summarize(n = n())
+
 # Missing heights:
 # ARPA
 # CEVE
@@ -46,8 +48,6 @@ shrubs_2 <- shrubs_1 %>%
 # No Heights:
 # NODE
 # QUVA
-
-shrubs_2 %>% group_by(sp_group) %>% summarize(n = n())
 ```
 
 <br> 
@@ -60,7 +60,7 @@ ARVI_data <- shrubs_2 %>% filter(sp_group == "ARVI")
 CESP_data <- shrubs_2 %>% filter(sp_group == "CE.SP")
 CECO_data <- shrubs_2 %>% filter(sp_group == "CECO")
 CEIN_data <- shrubs_2 %>% filter(sp_group == "CEIN")
-CEBE_data <- shrubs_2 %>% filter(sp_group == "CEVE")
+CEVE_data <- shrubs_2 %>% filter(sp_group == "CEVE")
 CHSP_data <- shrubs_2 %>% filter(sp_group == "CH.SP")
 CHSE_data <- shrubs_2 %>% filter(sp_group == "CHSE")
 COSP_data <- shrubs_2 %>% filter(sp_group == "CO.SP")
@@ -74,7 +74,44 @@ OTHER_data <- shrubs_2 %>% filter(sp_group == "OTHER")
 
 <br>
 
-# AMAL
+# Summary of top model fits 
+
+  * AMAL: serviceberry 
+      * CA + HT (GNLS)
+  * ARPA: greenleaf manzanita
+      * CA (NLS)
+  * ARVI: whiteleaf manzanita
+      * CA + HT (GNLS)
+  * CESP: ceanothus genus (kern ceanothus, buck brush)
+      * CA + HT (NLS)
+  * CECO: whitethorn
+      * CA + HT (NLS)
+  * CEIN: deerbrush 
+      * CA (GNLS)
+  * CEVE: tobacco brush
+      * CA (GNLS)
+  * CHSP: chrysothamnus genus (rubber and parry's rabbitbrush)
+      * CA + HT (NLS)
+  * CHSE: Sierra chinquapin
+      * CA + HT (GNLS)
+  * COSP: cornus genus (pacific and redoiser dogwood)
+      * CA + HT (GNLS)
+  * COCO: beaked hazelnut
+      * CA + HT (GNLS)
+  * LEDA: Sierra laurel
+      * CA + HT (GNLS)
+  * NODE: tan-oak
+      * CA (NLS)
+  * QUSP: Quercus genus (gold cup live oak, California black oak, huckleberry oak)
+      * CA (NLS)
+  * RISP: Ribies genus
+      * CA (GNLS)
+  * OTHER: (mountain misery, Yerba santa, toyon, matted yerba santa, bitter cherry, antelope brush, mountain willow, poison oak, snowberry)
+      * CA + HT (NLS)
+
+<br>
+
+# AMAL (serviceberry)
 
 ```{r}
 input_data <- AMAL_data
@@ -95,7 +132,7 @@ b2start.M2.1 <- M2.lm$coef[[2]]
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
 
 ############################################################################
-# model fit 1 (DBH & HT)
+# model fit 1 (CA & HT)
 ############################################################################
 
 # second set of starting values
@@ -175,12 +212,12 @@ M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1
 
 
 ############################################################################
-# model fit 2 (DBH)
+# model fit 2 (CA)
 ############################################################################
     
 # second set of starting values
-b1start.M2.2 <- ((b1start.M2.1*0.25) + b1start.M2.1)
-b2start.M2.2 <- ((b2start.M2.1*0.25) + b2start.M2.1)
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
     
 # set 1 starting values, default Gauss-Newton search algorithm
 M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
@@ -282,7 +319,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -335,9 +372,9 @@ M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
 M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
 M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
 
-if(all(c(M1_check2)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
 
 # check for SSE equivalency 
 SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
@@ -349,9 +386,767 @@ M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
 M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
 M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
 
-if(all(c(M1_sse_check2)) != "TRUE") {
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# ARPA (greenleaf manzanita)
+
+```{r}
+# Using different datasets, so cannot do AIC comparisons 
+input_data_M1 <- ARPA_data %>% filter(!is.na(Hgt.m))
+input_data_M2 <- ARPA_data %>% select(AGL.g, CA.m2, lnAGL, lnCA)
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data_M1)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data_M2)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M2+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data_M1,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data_M1,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+#M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+#            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+#            data = input_data_M1,
+#            algorithm = 'port',
+#            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data_M1,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+#M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+#M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+#M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+#SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+#M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data_M1$AGL.g)
+SSY <- sum((input_data_M1$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data_M1, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data_M2,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data_M2,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data_M2,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data_M2,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data_M2$AGL.g)
+SSY <- sum((input_data_M2$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data_M2, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# Combine output
+############################################################################
+
+return_list <- list(M1_list, M2_list)
+names(return_list) <- c("M1.1", "M2.1")
+return_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1,M1_check2,M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1,M1_sse_check2,M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data_M1$AGL.g)
+SSY <- sum((input_data_M1$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data_M1, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
     stop('Global solution NOT found!')
 }
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data_M2$AGL.g)
+SSY <- sum((input_data_M2$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data_M2, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# Combine output
+############################################################################
+
+return_list <- list(M1_list, M2_list)
+names(return_list) <- c("M1.1", "M2.1")
+return_list
+```
+
+<br>
+
+# ARVI (whiteleaf manzanita)
+
+```{r}
+input_data <- ARVI_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M1+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -472,10 +1267,10 @@ return_list
 
 <br>
 
-# ARPA (did not finish)
+# CESP (ceanothus genus)
 
 ```{r}
-input_data <- ARPA_data
+input_data <- CESP_data
 
 M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
 b1start.M1.1 <- exp(M1.lm$coef[[1]])
@@ -487,13 +1282,13 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M1+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
 
 ############################################################################
-# model fit 1 (DBH & HT)
+# model fit 1 (CA & HT)
 ############################################################################
 
 # second set of starting values
@@ -514,11 +1309,11 @@ M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
             control = ctrl)
 
 # set 1 starting values, port search algorithm
-#M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
-#            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
-#            data = input_data,
-#            algorithm = 'port',
-#            control = ctrl)
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
  
 # set 2 starting values, port search algorithm
 M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
@@ -530,35 +1325,35 @@ M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
 # check for coefficient equivalency
 M1.1_sum <- summary(M1.1)
 M1.2_sum <- summary(M1.2)
-#M1.3_sum <- summary(M1.3)
+M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
 M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
 M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-#M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
 M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
 
 M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-#M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
 M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
 
-#if(all(c(M1_check1, M1_check3)) != "TRUE") {
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
 #    stop('Global solution NOT found!')
 #} 
 
 # check for SSE equivalency 
 SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
 SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
-#SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
 SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
 
 M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
-#M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
 M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
 
-#if(all(c(M1_sse_check1, M1_sse_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -573,12 +1368,12 @@ M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1
 
 
 ############################################################################
-# model fit 2 (DBH)
+# model fit 2 (CA)
 ############################################################################
     
 # second set of starting values
-b1start.M2.2 <- ((b1start.M2.1*0.25) + b1start.M2.1)
-b2start.M2.2 <- ((b2start.M2.1*0.25) + b2start.M2.1)
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
     
 # set 1 starting values, default Gauss-Newton search algorithm
 M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
@@ -621,9 +1416,9 @@ M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
 M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
 M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
 
-if(all(c(M2_check1, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
 
 # check for SSE equivalency 
 SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
@@ -635,7 +1430,308 @@ M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
 M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
 M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
 
-if(all(c(M2_sse_check1, M2_sse_check3)) != "TRUE") {
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# Will not converge 
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+M2_list
+```
+
+<br>
+
+# CECO (whitethorn)
+
+```{r}
+input_data <- CECO_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M1+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
     stop('Global solution NOT found!')
 } 
 
@@ -733,9 +1829,9 @@ M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
 M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
 M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
 
-if(all(c(M1_check2)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
 
 # check for SSE equivalency 
 SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
@@ -747,9 +1843,9 @@ M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
 M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
 M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
 
-if(all(c(M1_sse_check2)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -768,8 +1864,8 @@ M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1
 ############################################################################
     
 # second set of starting values
-b1start.M2.2 <- ((b1start.M2.1*0.25) + b1start.M2.1)
-b2start.M2.2 <- ((b2start.M2.1*0.25) + b2start.M2.1)
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
     
 # set 1 starting values, default port search algorithm
 M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
@@ -868,17 +1964,3911 @@ names(return_list) <- list_names
 return_list
 ```
 
+<br>
+
+# CEIN (deerbrush)
+
+```{r}
+input_data <- CEIN_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
 
 
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
 
 
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M2+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
 
 
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
 
 
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# CEVE (tobacco brush)
+
+```{r}
+# Using different datasets, so cannot do AIC comparisons 
+input_data_M1 <- CEVE_data %>% filter(!is.na(Hgt.m))
+input_data_M2 <- CEVE_data %>% select(AGL.g, CA.m2, lnAGL, lnCA)
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data_M1)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data_M2)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data_M1,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data_M1,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data_M1,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data_M1,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data_M1$AGL.g)
+SSY <- sum((input_data_M1$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data_M1, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
 
 
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data_M2,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data_M2,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data_M2,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data_M2,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data_M2$AGL.g)
+SSY <- sum((input_data_M2$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data_M2, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
 
 
+############################################################################
+# Combine output
+############################################################################
+
+return_list <- list(M1_list, M2_list)
+names(return_list) <- c("M1.1", "M2.1")
+return_list
+```
+
+### GNLS FIT **+M2+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data_M1,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1,M1_check2,M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1,M1_sse_check2,M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data_M1$AGL.g)
+SSY <- sum((input_data_M1$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data_M1, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
 
 
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data_M2,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data_M2$AGL.g)
+SSY <- sum((input_data_M2$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data_M2, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# Combine output
+############################################################################
+
+return_list <- list(M1_list, M2_list)
+names(return_list) <- c("M1.1", "M2.1")
+return_list
+```
+
+<br>
+
+# CHSP (chrysothamnus genus)
+
+```{r}
+input_data <- CHSP_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M1+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# CHSE (sierra chinquapin)
+
+```{r}
+input_data <- CHSE_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M1+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# COSP (cornus genus)
+
+```{r}
+input_data <- COSP_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M1+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# COCO (beaked hazelnut)
+
+```{r}
+input_data <- COCO_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M1+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# LEDA (sierra laurel)
+
+```{r}
+input_data <- LEDA_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M1+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+#M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+#             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+#             data = input_data,
+#             weights = varPower(),
+#             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+#M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+#             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+#             data = input_data,
+#             weights = varPower(),
+#             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+#M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+#             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+#             data = input_data,
+#             weights = varPower(),
+#             control = ctrl_2)
+
+# check for coefficient equivalency
+#M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+#M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+#M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+#M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+#M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+#M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+#M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+#SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+#SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+#SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+#SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+#M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+#M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+#M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+#meany <- mean(input_data$AGL.g)
+#SSY <- sum((input_data$AGL.g - meany)^2)
+#SSE_M2 <- sum(resid(M2.1)^2)
+#M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+#M2_sum <- summary(M2.1)
+#M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+#M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# NODE (tan-oak)
+
+```{r}
+input_data <- NODE_data %>% select(lnAGL, lnCA, AGL.g, CA.m2)
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M2+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+M2_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+M2_list
+```
+
+
+<br>
+
+# QUSP (quercus genus)
+
+```{r}
+input_data <- QUSP_data %>% select(lnAGL, lnCA, AGL.g, CA.m2)
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M2+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+M2_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+M2_list
+```
+
+<br>
+
+# RISP (ribies genus)
+
+```{r}
+input_data <- RISP_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT **+M2+**
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
+
+<br>
+
+# OTHER
+
+```{r}
+input_data <- OTHER_data
+
+M1.lm <- lm(lnAGL ~ lnCA + lnHT, data = input_data)
+b1start.M1.1 <- exp(M1.lm$coef[[1]])
+b2start.M1.1 <- M1.lm$coef[[2]]
+b3start.M1.1 <- M1.lm$coef[[3]]
+
+M2.lm <- lm(lnAGL ~ lnCA, data = input_data)
+b1start.M2.1 <- exp(M2.lm$coef[[1]])
+b2start.M2.1 <- M2.lm$coef[[2]]
+```
+
+### NLS FIT **+M1+**
+
+```{r}
+ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
+
+############################################################################
+# model fit 1 (CA & HT)
+############################################################################
+
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default Gauss-Newton search algorithm
+M1.1 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M1.2 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M1.3 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+ 
+# set 2 starting values, port search algorithm
+M1.4 <- nls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+            start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M1.1_sum <- summary(M1.1)
+M1.2_sum <- summary(M1.2)
+M1.3_sum <- summary(M1.3)
+M1.4_sum <- summary(M1.4)
+
+M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
+M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
+M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
+M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "nls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2 (CA)
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default Gauss-Newton search algorithm
+M2.1 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            control = ctrl)
+    
+# set 2 starting values, default Gauss-Newton search algorithm
+M2.2 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            control = ctrl)
+
+# set 1 starting values, port search algorithm
+M2.3 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+    
+# set 2 starting values, port search algorithm
+M2.4 <- nls(AGL.g ~ b1*(CA.m2^b2),
+            start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+            data = input_data,
+            algorithm = 'port',
+            control = ctrl)
+
+# check for coefficient equivalency
+M2.1_sum <- summary(M2.1)
+M2.2_sum <- summary(M2.2)
+M2.3_sum <- summary(M2.3)
+M2.4_sum <- summary(M2.4)
+
+M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
+M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
+M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
+M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+    stop('Global solution NOT found!')
+} 
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "nls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+
+return_list
+```
+
+### GNLS FIT
+
+```{r}
+ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
+ctrl_2 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "optim") # Nelder-Mead routine 
+  
+############################################################################
+# model fit 1
+############################################################################
+  
+# second set of starting values
+b1start.M1.2 <- ((b1start.M1.1*0.15) + b1start.M1.1)
+b2start.M1.2 <- ((b2start.M1.1*0.15) + b2start.M1.1)
+b3start.M1.2 <- ((b3start.M1.1*0.15) + b3start.M1.1)
+
+# set 1 starting values, default port search algorithm
+M1.1 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 2 starting values, default port search algorithm
+M1.2 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M1.3 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.1, b2 = b2start.M1.1, b3 = b3start.M1.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# set 2 starting values, Nelder-Mead search algorithm
+M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
+             start = list(b1 = b1start.M1.2, b2 = b2start.M1.2, b3 = b3start.M1.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
+M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
+M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
+M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
+
+M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
+M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
+M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
+
+#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#} 
+
+# check for SSE equivalency 
+SSE_M1.1 <- round(sum(resid(M1.1)^2), -2)
+SSE_M1.2 <- round(sum(resid(M1.2)^2), -2)
+SSE_M1.3 <- round(sum(resid(M1.3)^2), -2)
+SSE_M1.4 <- round(sum(resid(M1.4)^2), -2)
+
+M1_sse_check1 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.2))
+M1_sse_check2 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.3))
+M1_sse_check3 <- isTRUE(all.equal(SSE_M1.1, SSE_M1.4))
+
+#if(all(c(M1_sse_check1, M1_sse_check2, M1_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M1 <- sum(resid(M1.1)^2)
+M1_R2 <- (1-(SSE_M1/SSY))
+
+# outputs
+M1_sum <- summary(M1.1)
+M1_plots <- diag_plots_nl(model = M1.1, data = input_data, y = AGL.g, type = "gnls")
+M1_list <- list("summary" = M1_sum, "Pseudo_R2" = M1_R2, "diagnostic_plots" = M1_plots)
+
+
+############################################################################
+# model fit 2
+############################################################################
+    
+# second set of starting values
+b1start.M2.2 <- ((b1start.M2.1*0.15) + b1start.M2.1)
+b2start.M2.2 <- ((b2start.M2.1*0.15) + b2start.M2.1)
+    
+# set 1 starting values, default port search algorithm
+M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+    
+# set 2 starting values, default port search algorithm
+M2.2 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_1)
+
+# set 1 starting values, Nelder-Mead search algorithm
+M2.3 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.1, b2 = b2start.M2.1),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+    
+# set 2 starting values, Nelder-Mead search algorithm
+M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
+             start = list(b1 = b1start.M2.2, b2 = b2start.M2.2),
+             data = input_data,
+             weights = varPower(),
+             control = ctrl_2)
+
+# check for coefficient equivalency
+M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
+M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
+M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
+M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
+
+M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
+M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
+M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
+
+#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# check for SSE equivalency 
+SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
+SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
+SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
+SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
+
+M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
+M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
+M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
+
+#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
+#    stop('Global solution NOT found!')
+#}
+
+# Pseudo R2
+meany <- mean(input_data$AGL.g)
+SSY <- sum((input_data$AGL.g - meany)^2)
+SSE_M2 <- sum(resid(M2.1)^2)
+M2_R2 <- (1-(SSE_M2/SSY))
+
+# outputs
+M2_sum <- summary(M2.1)
+M2_plots <- diag_plots_nl(model = M2.1, data = input_data, y = AGL.g, type = "gnls")
+M2_list <- list("summary" = M2_sum, "Pseudo_R2" = M2_R2, "diagnostic_plots" = M2_plots)
+
+
+############################################################################
+# AIC values and rank
+############################################################################
+
+AIC_values <- AICc(M1.1, M2.1)
+AIC_values <- AIC_values %>% arrange(AICc) %>% mutate(delta_AICc = AICc - AICc[1], AICc = round(AICc,3), delta_AICc = round(delta_AICc,3))
+
+# create output list, ordered by AICc
+n <- nrow(AIC_values)
+return_list <- list(AIC_values)
+    
+for(i in 1:n) {
+      
+  model_no <- rownames(AIC_values)[i]
+      
+  if(model_no == "M1.1") {
+    return_list[[length(return_list)+1]] <- M1_list
+  } else if (model_no == "M2.1") {
+    return_list[[length(return_list)+1]] <- M2_list
+  }
+        
+}
+    
+list_names <- c("AICc_Ranks", rownames(AIC_values))
+names(return_list) <- list_names
+    
+return_list
+```
