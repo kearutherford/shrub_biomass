@@ -1,15 +1,4 @@
 
-shrub_data <- data.frame(
-  site = c("SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","YOMI","YOMI","YOMI","YOMI","YOMI"),
-  plot = c("1","1","1","1","2","2","2","2","1","1","1","1","2"),
-  transect = c("1","1","2","2","1","1","2","2","1","1","2","2","1"),
-  tran_length = c(20,20,20,20,20,20,20,20,20,20,20,20,20),
-  species = c("AMAL","AMAL","CEIN","QUSP","AMAL","ARVI","COCO","QUSP","ARVI","ARVI","NODE","NODE","NONE"),
-  ht = c(1,0.5,1.5,2,1,0.5,1.5,2,1,0.5,1.5,2,NA),
-  crown_axis_1 = c(0.5,1,0.8,0.2,0.5,1,0.8,0.2,0.5,1,0.8,0.2,NA),
-  crown_axis_2 = c(1,1.5,0.9,0.5,1,1.5,0.9,0.5,1,1.5,0.9,0.5,NA)
-)
-
 ################################################################################
 ################################################################################
 # Top-level function
@@ -19,15 +8,15 @@ shrub_data <- data.frame(
 #' @title ShrubBiomass
 #'
 #' @description
-#' Work on....
+#' Uses allometric equations to estimate above-ground live shrub biomass for common shrub species of the Sierra Nevada.
 #'
 #' @param data A dataframe or tibble with the following columns: site, plot, transect, tran_length, species, ht, crown_axis_1, and crown_axis_2. Each row must be an observation of an individual shrub.
 #' @param results Not a variable (column) in the provided dataframe or tibble. Specifies whether the results will be summarized by shrub or by plot. Must be set to either "by_shrub" or "by_plot". The default is set to "by_plot".
 #'
 #' @return Depends on the results setting:
 #' \itemize{
-  #' \item by_shrub:
-  #' \item by_plot:
+  #' \item by_shrub: the original dataframe, with a new column total_ag_Mg_ha (total above-ground live shrub biomass in megagrams per hectare)
+  #' \item by_plot: a dataframe with plot-level above-ground live shrub biomass estimates (reported in megagrams per hectare).
   #' }
 #'
 #' @examples
@@ -114,6 +103,10 @@ ValidateShrubs <- function(data, results_val) {
     stop('Input data is missing the necessary "crown_axis_2" column.')
   }
 
+  if(!("slope" %in% colnames(data))) {
+    stop('Input data is missing the necessary "slope" column.')
+  }
+
   ###########################################################
   # Check that column classes are as expected
   ###########################################################
@@ -158,6 +151,11 @@ ValidateShrubs <- function(data, results_val) {
   if(!is.numeric(data$crown_axis_2)) {
     stop('"crown_axis_2" must be a numerical variable.\n',
          'You have input a variable of class: ', class(data$crown_axis_2))
+  }
+
+  if(!is.numeric(data$slope)) {
+    stop('"slope" must be a numerical variable.\n',
+         'You have input a variable of class: ', class(data$slope))
   }
 
   #########################################################
@@ -219,6 +217,11 @@ ValidateShrubs <- function(data, results_val) {
   # Check that species codes are as expected
   ###########################################################
 
+  # Check for NA ---------------------------------------------------------------
+  if ('TRUE' %in% is.na(data$species)) {
+    stop('There are missing species codes in the provided dataframe. Consider using OTHER or NONE for these shrubs.')
+  }
+
   # Check for unrecognized species codes ---------------------------------------
   sp_code_names <- c("AMAL", "ARPA", "ARVI", "CESP", "CECO", "CEIN", "CEVE", "CHSP", "CHSE",
                      "COSP", "COCO", "LEDA", "NODE", "QUSP", "RISP", "OTHER", "NONE")
@@ -230,11 +233,6 @@ ValidateShrubs <- function(data, results_val) {
     stop('Not all species codes were recognized!\n',
          'Unrecognized codes: ', unrecognized_sp)
 
-  }
-
-  # Check for NA ---------------------------------------------------------------
-  if ('TRUE' %in% is.na(data$species)) {
-    stop('There are missing species codes in the provided dataframe. Consider using OTHER or NONE for these shrubs.')
   }
 
   # Check for proper use of NONE species ---------------------------------------
@@ -276,7 +274,7 @@ ValidateShrubs <- function(data, results_val) {
 
   # Check for NA ---------------------------------------------------------------
   if ('TRUE' %in% is.na(trans_w_shrubs$ht)) {
-    stop('There are missing shrub heights in the provided dataframe.')
+    stop('There are missing shrub heights in the provided dataframe - outside of transects with species NONE, signifying transects with no shrubs, which should have NA ht.')
   }
 
   # Check for negative values ---------------------------------------------------
@@ -290,11 +288,11 @@ ValidateShrubs <- function(data, results_val) {
 
   # Check for NA ---------------------------------------------------------------
   if ('TRUE' %in% is.na(trans_w_shrubs$crown_axis_1)) {
-    stop('There are missing crown axis 1 values in the provided dataframe.')
+    stop('There are missing crown axis 1 values in the provided dataframe - outside of transects with species NONE, signifying transects with no shrubs, which should have NA crown_axis_1.')
   }
 
   if ('TRUE' %in% is.na(trans_w_shrubs$crown_axis_2)) {
-    stop('There are missing crown axis 2 values in the provided dataframe.')
+    stop('There are missing crown axis 2 values in the provided dataframe - outside of transects with species NONE, signifying transects with no shrubs, which should have NA crown_axis_2.')
   }
 
   # Check for negative values ---------------------------------------------------
@@ -304,6 +302,42 @@ ValidateShrubs <- function(data, results_val) {
 
   if (min(trans_w_shrubs$crown_axis_2) <= 0) {
     stop('There are crown axis 2 values <= 0 in the provided dataframe. All values must be > 0.')
+  }
+
+  ###########################################################
+  # Check slope
+  ###########################################################
+
+  # Check for NA ---------------------------------------------------------------
+  if ('TRUE' %in% is.na(data$slope)) {
+    stop('There are missing slopes in the provided dataframe.')
+  }
+
+  # Check for negative values ---------------------------------------------------
+  if (min(data$slope, na.rm = TRUE) < 0) {
+    stop('There are slopes < 0 in the provided dataframe. All slopes must be >= 0.')
+  }
+
+  # Check for matching values --------------------------------------------------
+  slp_check_vec <- c()
+
+  for(u in unq_ids) {
+
+    all_shrubs <- subset(data, site_plot_tran == u)
+
+    if(length(unique(all_shrubs$slope)) != 1) {
+      slp_check_vec <- c(slp_check_vec, u)
+    }
+
+  }
+
+  if(length(slp_check_vec) > 0) {
+
+    slp_check <- paste0(slp_check_vec, sep = "   ")
+
+    stop('Each site:plot:transect should have the same slope recorded.\n',
+         'The following site:plot:transect combinations have multiple slopes: ', slp_check)
+
   }
 
 }
@@ -330,7 +364,15 @@ PredictShrubBio <- function(data) {
   # convert biomass from g to kg
   data2$total_ag_kg <- data2$total_ag_g/1000
 
-  return_df <- subset(data2, select = -c(eqn,b1,b2,b3,ca_m2,total_ag_g))
+  # prep output df
+  sub_data2 <- subset(data2, select = -c(eqn,b1,b2,b3,ca_m2,total_ag_g))
+  all_cols <- colnames(sub_data2)
+  main_cols <- c("site", "plot","transect","tran_length","species","ht","crown_axis_1","crown_axis_2","total_ag_kg")
+  extra_cols <- all_cols[!(all_cols %in% main_cols)]
+  cols_ordered <- c(main_cols, extra_cols)
+  return_df <- subset(sub_data2, select = cols_ordered)
+  return_df <- return_df[order(return_df$site, return_df$plot, return_df$transect), ]
+
   return(return_df)
 
 }
@@ -344,15 +386,26 @@ PredictShrubBio <- function(data) {
 
 SumShrubs <- function(data) {
 
-  # calculate average crown width
-  data$avg_cw_m <- (data$crown_axis_1 + data$crown_axis_2)/2
+  # calculate crown area (using equation for an ellipse)
+  data$ca_m2 <- pi*data$crown_axis_1*data$crown_axis_2
 
-  # discount biomass based on size of shrub
-  data$dis_bio <- ifelse(data$species == "NONE", 0, data$total_ag_kg/data$avg_cw_m)
+  # calculate "effective diameter"
+  data$cw_m <- sqrt(data$ca_m2/pi)
+
+  # discount based on size of shrub
+  data$dis_bio <- ifelse(data$species == "NONE", 0, data$total_ag_kg/data$cw_m)
+  data$dis_ca <- ifelse(data$species == "NONE", 0, data$ca_m2/data$cw_m)
+
+  # calculate horizontal length of transects
+  # cos(degrees) = adjacent/hypotenuse --> adjacent = cos(deg)*hypotenuse
+  # here hypotenuse = transect length and adjacent = slope corrected transect length
+  data$slope_deg <- atan(data$slope/100) # convert % to degrees
+  data$slope_cos <- cos(data$slope_deg) # take the cosine
+  data$sc_tran_length <- data$slope_cos*data$tran_length # transect length corrected
 
   # create empty dataframe to fill
-  fill_df <- data.frame(matrix(nrow = 0, ncol = 3))
-  colnames(fill_df) <- c("site", "plot", "total_ag_Mg_ha")
+  fill_df <- data.frame(matrix(nrow = 0, ncol = 5))
+  colnames(fill_df) <- c("site", "plot", "total_ag_Mg_ha", "cover_perc", "sc_tran_length")
 
   # loop through each site/plot
   data$site_plot <- paste(data$site, data$plot, sep = "_")
@@ -362,22 +415,27 @@ SumShrubs <- function(data) {
 
     all_shrubs <- subset(data, site_plot == u)
     unq_trans <- unique(all_shrubs$transect)
-    L <- 0
+    length <- 0
+    bio <- 0
+    ca <- 0
 
     for(t in unq_trans) {
 
       tran_t <- subset(all_shrubs, transect == t)
-      L <- L + tran_t$tran_length[1]
+      length <- length + tran_t$sc_tran_length[1]
+      bio <- (10/tran_t$sc_tran_length[1])*sum(tran_t$dis_bio) # also converting from kg/m2 to Mg/ha
+      ca <- (1/tran_t$sc_tran_length[1])*sum(tran_t$dis_ca)
 
     }
 
-      fill_df[nrow(fill_df) + 1, ] <- NA
-      n <- nrow(fill_df)
+    fill_df[nrow(fill_df) + 1, ] <- NA
+    n <- nrow(fill_df)
 
-      fill_df$site[n] <- all_shrubs$site[1]
-      fill_df$plot[n] <- all_shrubs$plot[1]
-      # Note: also unit converting here from kg/m2 to Mg/ha
-      fill_df$total_ag_Mg_ha[n] <- (10/L)*sum(all_shrubs$dis_bio)
+    fill_df$site[n] <- all_shrubs$site[1]
+    fill_df$plot[n] <- all_shrubs$plot[1]
+    fill_df$total_ag_Mg_ha[n] <- bio
+    fill_df$cover_perc[n] <- ca*100
+    fill_df$sc_tran_length[n] <- length
 
   }
 
