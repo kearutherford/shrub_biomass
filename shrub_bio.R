@@ -352,7 +352,7 @@ ValidateShrubs <- function(data, results_val) {
 PredictShrubBio <- function(data) {
 
   # calculate crown area (using equation for an ellipse)
-  data$ca_m2 <- pi*data$crown_axis_1*data$crown_axis_2
+  data$ca_m2 <- pi*((data$crown_axis_1*data$crown_axis_2)/4)^2
 
   shrub_coefs <- read.csv("agl_coefs.csv") # remove once data has been internalized!!!!!
   data2 <- merge(data, shrub_coefs, by = "species", all.x = TRUE, all.y = FALSE)
@@ -387,14 +387,18 @@ PredictShrubBio <- function(data) {
 SumShrubs <- function(data) {
 
   # calculate crown area (using equation for an ellipse)
-  data$ca_m2 <- pi*data$crown_axis_1*data$crown_axis_2
+  data$ca_m2 <- pi*((data$crown_axis_1*data$crown_axis_2)/4)^2
 
-  # calculate "effective diameter"
-  data$cw_m <- sqrt(data$ca_m2/pi)
+  # calculate "effective diameter" (= p/pi)
+  data$a <- (data$crown_axis_1/2)
+  data$b <- (data$crown_axis_2/2)
+  data$h <- (data$a - data$b)^2/(data$a + data$b)^2
+  data$perimeter <- pi*(data$a + data$b)*(1 + (3*data$h)/(10 + sqrt(4 - 3*data$h)))
+  data$eff_diam <- data$perimeter/pi
 
   # discount based on size of shrub
-  data$dis_bio <- ifelse(data$species == "NONE", 0, data$total_ag_kg/data$cw_m)
-  data$dis_ca <- ifelse(data$species == "NONE", 0, data$ca_m2/data$cw_m)
+  data$dis_bio <- ifelse(data$species == "NONE", 0, data$total_ag_kg/data$eff_diam)
+  data$dis_ca <- ifelse(data$species == "NONE", 0, data$ca_m2/data$eff_diam)
 
   # calculate horizontal length of transects
   # cos(degrees) = adjacent/hypotenuse --> adjacent = cos(deg)*hypotenuse
