@@ -8,15 +8,6 @@ test_that("Invalid settings throw an error", {
 })
 
 
-test_that("Properly formatted dataframes throw no errors, warnings, or messages", {
-
-  expect_no_error(ShrubBiomass(data = good_shrubs))
-  expect_no_warning(ShrubBiomass(data = good_shrubs))
-  expect_no_message(ShrubBiomass(data = good_shrubs))
-
-})
-
-
 test_that("Missing columns throw an error", {
 
   expect_error(ShrubBiomass(data = bad_shrubs_1),

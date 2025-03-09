@@ -5374,3 +5374,214 @@ bad_shrubs_37 <- data.frame(
   slope = c(5,7,10,10,0,0,20,20,15,15,5,5,10,10) # multiple slope values
 )
 
+
+######################################################################
+# dataframes used for shrub compilation function tests
+######################################################################
+
+strs_shrubs <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  stratum = as.character(c(1,1,1,2,2,1,1,2,2,1,1,1,2,2,1,1,2,2)),
+  plot = as.character(c(1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+srs_shrubs <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+ffs_shrubs <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  trt_type = c("burn", "burn", "burn", "burn", "burn", "mech", "mech", "mech", "mech", "burn", "burn", "burn", "burn", "burn", "mech", "mech", "mech", "mech"),
+  site = as.character(c(360, 360, 220, 220, 220, 460, 460, 530, 530, 360, 360, 220, 220, 220, 460, 460, 530, 530)),
+  plot = as.character(c(1,2,1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_1 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  #cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_2 <- data.frame(
+  time = c("pre", NA, "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_3 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", NA, "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_4 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,NA,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_5 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,NA,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_6 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,NA,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_7 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,NA,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_8 <- data.frame(
+  time = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_9 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c(1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_10 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_11 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = as.character(c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2)),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_12 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = as.character(c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30)),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_srs_shrubs_13 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  plot = as.character(c(1,2,3,4,5,1,2,3,4,1,2,3,4,5,1,2,3,4)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = as.character(c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29))
+)
+
+bad_strs_shrubs_1 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  #stratum = as.character(c(1,1,1,2,2,1,1,2,2,1,1,1,2,2,1,1,2,2)),
+  plot = as.character(c(1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_strs_shrubs_2 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  stratum = as.character(c(1,NA,1,2,2,1,1,2,2,1,1,1,2,2,1,1,2,2)),
+  plot = as.character(c(1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_strs_shrubs_3 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
+  stratum = c(1,1,1,2,2,1,1,2,2,1,1,1,2,2,1,1,2,2),
+  plot = as.character(c(1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_ffs_shrubs_1 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  #trt_type = c("burn", "burn", "burn", "burn", "burn", "mech", "mech", "mech", "mech", "burn", "burn", "burn", "burn", "burn", "mech", "mech", "mech", "mech"),
+  site = as.character(c(360, 360, 220, 220, 220, 460, 460, 530, 530, 360, 360, 220, 220, 220, 460, 460, 530, 530)),
+  plot = as.character(c(1,2,1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_ffs_shrubs_2 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  trt_type = c("burn", NA, "burn", "burn", "burn", "mech", "mech", "mech", "mech", "burn", "burn", "burn", "burn", "burn", "mech", "mech", "mech", "mech"),
+  site = as.character(c(360, 360, 220, 220, 220, 460, 460, 530, 530, 360, 360, 220, 220, 220, 460, 460, 530, 530)),
+  plot = as.character(c(1,2,1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+
+bad_ffs_shrubs_3 <- data.frame(
+  time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
+  trt_type = c(1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2),
+  site = as.character(c(360, 360, 220, 220, 220, 460, 460, 530, 530, 360, 360, 220, 220, 220, 460, 460, 530, 530)),
+  plot = as.character(c(1,2,1,2,3,1,2,1,2,1,2,1,2,3,1,2,1,2)),
+  total_ag_Mg_ha = c(1,1,2,3,1,0,3,2,2,0,2,1,1,0,3,2,1,2),
+  cover_perc = c(20,20,30,40,20,10,40,30,30,10,30,20,20,10,40,30,20,30),
+  sc_tran_length = c(28,28,29,29,26,30,30,30,30,30,30,28,28,27,29,29,29,29)
+)
+

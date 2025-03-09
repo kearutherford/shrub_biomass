@@ -1,14 +1,38 @@
 
-test <- ShrubBiomass(good_shrubs)
-test$time <- "pre"
-
-CompileShrubs(test, "SRS")
-
 ################################################################################
 ################################################################################
 # Top-level function
 ################################################################################
 ################################################################################
+
+#' @title CompileShrubs
+#'
+#' @description
+#' Compiles shrub data beyond the plot level. Specifically designed to further summarize outputs from the ShrubBiomass function. Recognizes simple random sampling and stratified random sampling designs. Also recognizes the design of the Fire and Fire Surrogate. See \href{https://github.com/kearutherford/BerkeleyForestsAnalytics/tree/main}{README} for details.
+#'
+#' @param shrub_data A dataframe or tibble. Shrub biomass and cover must already be calculated at the plot-level using the ShrubBiomass function. Required columns depend on the sampling design:
+#' \itemize{
+#' \item Simple random sampling: must have time, site, plot, total_ag_Mg_ha, cover_perc, and sc_tran_length.
+#' \item Stratified random sampling: must have time, site, stratum, plot, total_ag_Mg_ha, cover_perc, and sc_tran_length.
+#' \item Fire and Fire Surrogate: must have time, trt_type, site, plot, total_ag_Mg_ha, cover_perc, and sc_tran_length.
+#' }
+#' @param design Specifies the sampling design. Must be set to "SRS" (simple random sample), "STRS" (stratified ransom sample), or "FFS" (Fire and Fire Surrogate). There is no default.
+#' @param wt_data Only required for stratified random sampling designs. A dataframe or tibble with the following columns: time (optional), site, stratum, and wh (stratum weight). The default is set to "not_needed", and should be left as such for design = "SRS" or design = "FFS".
+#' @param fpc_data  An optional dataframe or tibble. Incorporates the finite population correction factor (FPC) when samples were taken without replacement. The default is set to "not_needed". Required columns depend on the sampling design:
+#' \itemize{
+#' \item Simple random sampling: must have site, N, and n columns. A time column is optional.
+#' \item Stratified random sampling: must have site, stratum, N, and n columns. A time column is optional.
+#' \item Fire and Fire Surrogate: must have trt_type, site, N and n columns. A time column in optional.
+#' }
+#'
+#' @return Depends on the sampling design:
+#' \itemize{
+#' \item Simple random sampling: a dataframe with site-level summaries.
+#' \item Stratified random sampling: a list with two components: (1) a dataframe with stratum-level summaries and (2) a dataframe with site-level summaries.
+#' \item Fire and Fire Surrogate: a list with two components: (1) a dataframe with site-level (i.e., compartment-level) summaries and (2) a dataframe with treatment-level summaries.
+#' }
+#'
+#' @export
 
 CompileShrubs <- function(shrub_data, design, wt_data = "not_needed", fpc_data = "not_needed") {
 
@@ -204,17 +228,17 @@ ValidateShrubColumns <- function(shrub_data_val, design_val) {
   }
 
   if(!is.numeric(shrub_data_val$total_ag_Mg_ha)) {
-    stop('For shrub_data, total_ag_Mg_ha must be a character variable.\n',
+    stop('For shrub_data, total_ag_Mg_ha must be a numeric variable.\n',
          'The total_ag_Mg_ha column is currently class: ', class(shrub_data_val$total_ag_Mg_ha))
   }
 
   if(!is.numeric(shrub_data_val$cover_perc)) {
-    stop('For shrub_data, cover_perc must be a character variable.\n',
+    stop('For shrub_data, cover_perc must be a numeric variable.\n',
          'The cover_perc column is currently class: ', class(shrub_data_val$cover_perc))
   }
 
   if(!is.numeric(shrub_data_val$sc_tran_length)) {
-    stop('For shrub_data, sc_tran_length must be a character variable.\n',
+    stop('For shrub_data, sc_tran_length must be a numeric variable.\n',
          'The sc_tran_length column is currently class: ', class(shrub_data_val$sc_tran_length))
   }
 
@@ -302,10 +326,10 @@ STRS_CalcsSh <- function(data, wh_data, fpc) {
     ag <- WeightedValues(all_plots, "total_ag_Mg_ha", "sc_tran_length", fpc, "STRS")
     pc <- WeightedValues(all_plots, "cover_perc", "sc_tran_length", fpc, "STRS")
 
-    str_df$avg_ag_Mg_ha[l] <- ag[1]
-    str_df$se_ag_Mg_ha[l] <- ag[2]
-    str_df$avg_cover_perc[l] <- pc[1]
-    str_df$se_cover_perc[l] <- pc[2]
+    str_df$avg_ag_Mg_ha[j] <- ag[1]
+    str_df$se_ag_Mg_ha[j] <- ag[2]
+    str_df$avg_cover_perc[j] <- pc[1]
+    str_df$se_cover_perc[j] <- pc[2]
 
   }
 
@@ -332,7 +356,7 @@ STRS_CalcsSh <- function(data, wh_data, fpc) {
     overall_df$site[l] <- all_strats$site[1]
 
     # function defined in compilation_general.R
-    ag_st <- OverallValues(all_strats, "avg_ag_Mg_ha", "se_lag_Mg_ha")
+    ag_st <- OverallValues(all_strats, "avg_ag_Mg_ha", "se_ag_Mg_ha")
     pc_st <- OverallValues(all_strats, "avg_cover_perc", "se_cover_perc")
 
     overall_df$avg_ag_Mg_ha[l] <- ag_st[1]
@@ -356,7 +380,7 @@ STRS_CalcsSh <- function(data, wh_data, fpc) {
 # function for FFS
 ################################################################
 
-FFS_CalcsSf <- function(data, fpc) {
+FFS_CalcsSh <- function(data, fpc) {
 
   # create columns to reduce looping
   data$tts <- paste0(data$time,'_',data$trt_type,'_',data$site)
@@ -386,10 +410,10 @@ FFS_CalcsSf <- function(data, fpc) {
     ag <- WeightedValues(all_plots, "total_ag_Mg_ha", "sc_tran_length", fpc, "FFS")
     pc <- WeightedValues(all_plots, "cover_perc", "sc_tran_length", fpc, "FFS")
 
-    comp_df$avg_ag_Mg_ha[l] <- ag[1]
-    comp_df$se_ag_Mg_ha[l] <- ag[2]
-    comp_df$avg_cover_perc[l] <- pc[1]
-    comp_df$se_cover_perc[l] <- pc[2]
+    comp_df$avg_ag_Mg_ha[j] <- ag[1]
+    comp_df$se_ag_Mg_ha[j] <- ag[2]
+    comp_df$avg_cover_perc[j] <- pc[1]
+    comp_df$se_cover_perc[j] <- pc[2]
 
   }
 

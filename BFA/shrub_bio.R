@@ -1,4 +1,13 @@
 
+carb_shrubs <- read.csv("CARB_BFA_check.csv")
+carb_shrubs$plot <- as.character(carb_shrubs$plot)
+carb_shrubs$transect <- as.character(carb_shrubs$transect)
+
+check_1 <- ShrubBiomass(carb_shrubs)
+check_1$time <- "2020"
+
+CompileShrubs(check_1, design = "SRS")
+
 ################################################################################
 ################################################################################
 # Top-level function
