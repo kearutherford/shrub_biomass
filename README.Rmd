@@ -1,4 +1,9 @@
 
+---
+output: 
+  github_document
+---
+
 # Shrub biomass estimates
 
 The `ShrubBiomass` function uses allometric equations to estimate above-ground shrub biomass. See "Background information for shrub biomass estimations" below for further details.
@@ -41,6 +46,7 @@ Depends on the results setting:
 
 ### Demonstrations
 
+```{r}
 shrub_demo_data <- data.frame(
   site = c("SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","SEKI","YOMI","YOMI","YOMI","YOMI","YOMI","YOMI"),
   plot = c("1","1","1","1","2","2","2","2","1","1","1","1","2","2"),
@@ -52,6 +58,7 @@ shrub_demo_data <- data.frame(
   crown_axis_2 = c(0.3,0.5,0.8,0.7,0.5,1,0.8,0.8,0.5,0.6,0.8,1.2,NA,NA),
   slope = c(5,5,10,10,0,0,20,20,15,15,5,5,10,10)
 )
+```
 
 ```{r}
 # investigate input dataframe
@@ -157,6 +164,7 @@ Depends on the sampling design:
 
 ### Demonstrations
 
+```{r}
 compilation_strs_shrub_demo <- data.frame(
   time = c("pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "pre", "post", "post", "post", "post", "post", "post", "post", "post", "post"),
   site = c("SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI", "SEKI", "SEKI", "SEKI", "SEKI", "SEKI", "YOMI", "YOMI", "YOMI", "YOMI"),
@@ -175,7 +183,7 @@ compilation_srs_shrub_demo <- data.frame(
   cover_perc = c(15,20,30,35,15,0,25,20,20,0,15,10,0,0,0,15,10,20),
   sc_tran_length = c(28,28,29,29,26,30,30,30,30,28,28,29,29,26,30,30,30,30)
 )
-
+```
 
 **Simple random sampling design:**
 
@@ -225,20 +233,78 @@ strs_shrub_demo
 
 All shrub species currently included/recognized in the `ShrubBiomass()` function are listed in the table below.
 
-|common name|scientific name|4-letter code|
+|4-letter code|scientific name|common name|
 |:---|:---|:---|
-|Balsam fir|Abies balsamea|ABBA|
+|AMAL|*Amelanchier alnifolia*|serviceberry|
+|ARPA|*Arctostaphylos patula*|greenleaf manzanita|
+|ARVI|*Arctostaphylos viscida*|whiteleaf manzanita|
+|CECO|*Ceanothus cordulatus*|whitethorn|
+|CEIN|*Ceanothus integerrimus*|deerbrush|
+|CEVE|*Ceanothus velutinus*|tobacco brush|
+|CESP|*Ceanothus* spp.|other Ceanothus species|
+|CHSP|*Chrysothamnus* spp.|rabbitbrush species|
+|CHSE|*Chrysolepis sempervirens*|Sierra chinquapin|
+|COSP|*Cornus* spp.|dogwood species|
+|COCO|*Corylus cornuta* ssp. *californica*|beaked hazelnut|
+|LEDA|*Leucothoe davisiae*|Sierra laurel|
+|NODE|*Notholithocarpus densiflorus*|tan-oak|
+|QUSP|*Quercus* spp.|oak species|
+|RISP|*Ribies* spp.|currant and gooseberry species|
+|OTHER|NA|other or unknown species|
 
 *Note: Four-letter species codes are generally the first two letters of the genus followed by the first two letters of the species.*
 
+## General workflow
 
+**Step 1:** Estimate shrub-level biomass using allometric equations 
 
+The allometric models follow one of two forms:
 
+\(AGB_i = a*CA_i^b*HT_i^c\) OR \(AGB_i = a*CA_i^b\)
 
+*Where*
 
+* AGB is aboveground live shrub biomass (including wood, bark, and leaves) in g for shrub i
+* CA is crown area in \(m^2\) for shrub i, calculated as an ellipse using the major and minor diameters of shrub i
+* HT is height in m for shrub i
+* a, b, and c are the estimated coefficients for each shrub species 
 
+**Step 2:** Estimate values on a per area basis 
 
+\(Y_p = \frac{1}{L_p}*\sum(\frac{Q_{i,p}}{D_{i,p}})\)
 
+*Where*
 
+* Y is a quantity on a per-area basis for plot p (here either aboveground live biomass in \(kg/m^2\) OR percent cover)
+* L is the total slope-corrected transect length in m for plot p 
+* Q is the quantity measured on the \(i^{th}\) shrub encountered (here either aboveground live biomass converted from g to kg OR crown area in \(m^2\))
+* D is the effective diameter in m of the \(i^{th}\) shrub, which is calculated as the perimeter of the shrub divided by \(pi\)
 
+**Step 3:** Convert units
 
+For aboveground live biomass, convert units from \(kg/m^2\) to \(Mg/ha\)
+
+**Further resources:**
+
+* For more detail on the overall approach see: Battles, J.J., J.G. Dushoff, and T.J. Fahey. 1996. Line intersect sampling of forest canopy gaps. *Forest Science* 42(2): 131-138.
+* For more detail on slope-corrected transect lengths see "Background information for surface and ground fuel load calculations: Slope-corrected transect length" in the README file for BerkeleyForestsAnalytics.
+* For more detail on the finite population correction factor see "Background information for further data summarization: Fintite population correction factor" in the README file for BerkeleyForestsAnalytics.
+* For more detail on data summarization beyond the plot level (including further details on why and how estimates are weighted by the line transect length) see "Background information for further data summarization: Weighted equations used in CompileSurfaceFuels function" in the README file for BerkeleyForestsAnalytics.
+
+Link to BerkeleyForestsAnalytics README file [HERE](https://github.com/kearutherford/BerkeleyForestsAnalytics)
+
+## General setup for shrub data collection 
+
+* Each plot has one or more shrub transects. The number of transects per plot and the length of the transects will vary by protocol. 
+* On each transect, record the following information for each shrub that intersects the transect:
+    * Species 
+    * Major shrub diameter: the maximum crown width of the individual 
+    * Minor shrub diameter: the crown width of the individual, perpendicular to the axis of the maximum width 
+    * Shrub height: the average height of the shrub
+* As an example: Shrubs are sampled along two perpendicular 30m transects intersecting at plot center (see image below).
+
+<br>
+
+<img src = "man/figures/shrub_diagram.png" />
+
+<br> 
