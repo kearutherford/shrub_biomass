@@ -82,37 +82,37 @@ OTHER_data <- shrubs_2 %>% filter(sp_group == "OTHER")
 # Summary of top model fits 
 
   * AMAL: serviceberry 
-      * 
+      * CA + HT (GNLS)
   * ARPA: greenleaf manzanita
-      * 
+      * CA (GNLS)
   * ARVI: whiteleaf manzanita
-      * 
+      * CA + HT (GNLS)
   * CESP: ceanothus genus (kern ceanothus, buck brush)
-      * 
+      * CA + HT (NLS)
   * CECO: whitethorn
-      * 
+      * CA + HT (NLS)
   * CEIN: deerbrush 
-      * 
+      * CA (GNLS)
   * CEVE: tobacco brush
-      * 
+      * CA (GNLS)
   * CHSP: chrysothamnus genus (rubber and parry's rabbitbrush)
-      * 
+      * CA + HT (NLS)
   * CHSE: Sierra chinquapin
-      * 
+      * CA + HT (GNLS)
   * COSP: cornus genus (pacific and redoiser dogwood)
-      * 
+      * CA + HT (GNLS)
   * COCO: beaked hazelnut
-      * 
+      * CA + HT (GNLS)
   * LEDA: Sierra laurel
-      * 
+      * CA + HT (GNLS)
   * NODE: tan-oak
-      * 
+      * CA (NLS)
   * QUSP: Quercus genus (gold cup live oak, California black oak, huckleberry oak)
-      * 
+      * CA (NLS)
   * RISP: Ribies genus
-      * 
+      * CA (GNLS)
   * OTHER: (mountain misery, Yerba santa, toyon, matted yerba santa, bitter cherry, antelope brush, mountain willow, poison oak, snowberry)
-      * 
+      * CA + HT (NLS)
 
 <br>
 
@@ -296,7 +296,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -620,7 +620,7 @@ names(return_list) <- c("M1.1", "M2.1")
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M2+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -942,7 +942,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -1119,7 +1119,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M1+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
@@ -1378,7 +1378,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M1+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
@@ -1885,7 +1885,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M2+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -2223,7 +2223,7 @@ names(return_list) <- c("M1.1", "M2.1")
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M2+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -2380,7 +2380,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M1+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
@@ -2887,7 +2887,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -3229,7 +3229,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -3571,7 +3571,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -3913,7 +3913,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M1+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -4099,7 +4099,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M2+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
@@ -4253,7 +4253,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M2+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)
@@ -4577,7 +4577,7 @@ names(return_list) <- list_names
 return_list
 ```
 
-### GNLS FIT
+### GNLS FIT **+M2+**
 
 ```{r}
 ctrl_1 <- gnlsControl(maxIter = 1500, tolerance = 1e-4, minScale = 1e-10, opt = "nlminb") # a port routine (program default)
@@ -4754,7 +4754,7 @@ b1start.M2.1 <- exp(M2.lm$coef[[1]])
 b2start.M2.1 <- M2.lm$coef[[2]]
 ```
 
-### NLS FIT
+### NLS FIT **+M1+**
 
 ```{r}
 ctrl <- nls.control(maxiter = 1500, tol = 1e-4, minFactor = 1e-10)

@@ -8,16 +8,20 @@ suppressPackageStartupMessages(library(nlme))
 
 ```{r}
 shrubs <- read_csv("data/shrub_prepped.csv", show_col_types = FALSE) %>%
-  mutate(lnAGL = log(AGL.g),
+  rename(CA.m4 = CA.m2) %>%
+  mutate(CA.m2 = if_else(Author == "Battles" | Author == "Harrington", CA.m4, pi*(CW1.m/2)*(CW2.m/2)),
          lnCA = log(CA.m2),
+         lnAGL = log(AGL.g),
          lnHT = log(Hgt.m))
+
+head(shrubs)
 ```
 
 ```{r}
 final_fits <- data.frame(
   sp_group = c("AMAL","ARPA","ARVI","CE.SP","CECO","CEIN","CEVE","CH.SP","CHSE","CO.SP","COCO","LEDA","NODE","QU.SP","RI.SP","OTHER"),
   model = c("M1","M2","M1","M1","M1","M2","M2","M1","M1","M1","M1","M1","M2","M2","M2","M1"),
-  type = c("GNLS","NLS","GNLS","NLS","NLS","GNLS","GNLS","NLS","GNLS","GNLS","GNLS","GNLS","NLS","NLS","GNLS","NLS")
+  type = c("GNLS","GNLS","GNLS","NLS","NLS","GNLS","GNLS","NLS","GNLS","GNLS","GNLS","GNLS","NLS","NLS","GNLS","NLS")
 )
 
 final_fits

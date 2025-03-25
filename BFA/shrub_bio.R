@@ -361,7 +361,7 @@ ValidateShrubs <- function(data, results_val) {
 PredictShrubBio <- function(data) {
 
   # calculate crown area (using equation for an ellipse)
-  data$ca_m2 <- pi*((data$crown_axis_1*data$crown_axis_2)/4)^2
+  data$ca_m2 <- pi*(data$crown_axis_1/2)*(data$crown_axis_2/2)
 
   shrub_coefs <- read.csv("agl_coefs.csv") # remove once data has been internalized!!!!!
   data2 <- merge(data, shrub_coefs, by = "species", all.x = TRUE, all.y = FALSE)
@@ -396,7 +396,7 @@ PredictShrubBio <- function(data) {
 SumShrubs <- function(data) {
 
   # calculate crown area (using equation for an ellipse)
-  data$ca_m2 <- pi*((data$crown_axis_1*data$crown_axis_2)/4)^2
+  data$ca_m2 <- pi*(data$crown_axis_1/2)*(data$crown_axis_2/2)
 
   # calculate "effective diameter" (= p/pi)
   data$a <- (data$crown_axis_1/2)
