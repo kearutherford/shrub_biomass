@@ -153,7 +153,27 @@ agl_coefs <- coef_fn(shrubs, final_fits)
 ```
 
 ```{r}
-write_csv(agl_coefs, "data\\agl_coefs.csv")
+add <- data.frame(
+  species = "NONE",
+  eqn = "M3",
+  b1 = as.double(NA),
+  b2 = as.double(NA),
+  b3 = as.double(NA)
+)
+
+agl_coefs_r <- agl_coefs %>%
+  mutate(species = if_else(species == "CE.SP", "CESP", species),
+         species = if_else(species == "CH.SP", "CHSP", species),
+         species = if_else(species == "CO.SP", "COSP", species),
+         species = if_else(species == "QU.SP", "QUSP", species),
+         species = if_else(species == "RI.SP", "RISP", species)) %>%
+  rbind(add)
+
+agl_coefs_r
+```
+
+```{r}
+write_csv(agl_coefs_r, "data\\agl_coefs.csv")
 ```
 
 
