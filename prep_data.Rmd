@@ -4,7 +4,7 @@ library(tidyverse)
 ```
 
 ```{r}
-shrub_1 <- read_csv("data//shrub_data_JB.csv")
+shrub_1 <- read_csv("data//shrub_data_JB.csv", show_col_types = FALSE)
 head(shrub_1)
 ```
 

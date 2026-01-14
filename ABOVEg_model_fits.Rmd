@@ -11,9 +11,8 @@ output:
 # Data preparation 
 
 **Clear environment and load required packages**
-```{r}
+```{r, warning=FALSE}
 rm(list=ls(all=TRUE))
-
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(ggplot2))
 suppressPackageStartupMessages(library(patchwork))
@@ -34,23 +33,20 @@ head(shrubs_1)
 
 **Add new variables for model fits**
 ```{r}
-# Note: CA.m2 in original dataframe was calculated incorrectly (it was in m^4)
-# except for Battles and Harrington 
-
+# CA.m2 only calculated for Battles and Harrington 
 shrubs_2 <- shrubs_1 %>%
-  rename(CA.m4 = CA.m2) %>%
-  mutate(CA.m2 = if_else(Author == "Battles" | Author == "Harrington", CA.m4, pi*(CW1.m/2)*(CW2.m/2)),
+  mutate(CA.m2 = if_else(Author == "Battles" | Author == "Harrington", CA.m2, pi*(CW1.m/2)*(CW2.m/2)),
          lnCA = log(CA.m2),
          lnAGL = log(AGL.g),
          lnHT = log(Hgt.m))
 
 shrubs_2 %>% group_by(sp_group) %>% summarize(n = n())
 
-# Missing heights:
+# Missing heights (some shrub samples don't have heights):
 # ARPA
 # CEVE
 
-# No Heights:
+# No Heights (no shrub samples have heights):
 # NODE
 # QUVA
 ```
@@ -76,6 +72,36 @@ QUSP_data <- shrubs_2 %>% filter(sp_group == "QU.SP")
 RISP_data <- shrubs_2 %>% filter(sp_group == "RI.SP")
 OTHER_data <- shrubs_2 %>% filter(sp_group == "OTHER")
 ```
+
+<br>
+
+# Model fit procedures
+
+General process: 
+
+* For each species (or species group), fit 2 models: (1) crown area (CA) & height (HT); (2) crown area (CA)
+* For each, fit via nls and gnls (nls fit may not meet model assumptions). All gnls fits are with weights = varPower(). 
+* For each, fit with 2 different starting values and two different search algorithms. 
+      
+Checks to ensure a global optimum:
+
+* coefficient equivalency (coefficients should be similar)
+
+Other notes:
+
+* Offset starting values in the following order: 25%, 20%, 15%
+* When possible, select the model with the default search algorithm and the lm starting values. 
+* Try to use the same control settings throughout (not always possible because you need to get convergence).
+
+<br>
+
+# Model selection procedure
+
+1. Model assumptions must be met as assessed via diagnostic plots.
+
+2. A lower Akaike information criterion for smaller sample sizes (AICc) is better. 
+
+3. Simpler is better.
 
 <br>
 
@@ -113,6 +139,10 @@ OTHER_data <- shrubs_2 %>% filter(sp_group == "OTHER")
       * CA (GNLS)
   * OTHER: (mountain misery, Yerba santa, toyon, matted yerba santa, bitter cherry, antelope brush, mountain willow, poison oak, snowberry)
       * CA + HT (NLS)
+
+<br>
+
+**NOTE:** Below, the **+M1+** and **+M2+** indicate the model fit selected for that particular species. Take AMAL (serviceberry) as an example: the **+M1+** next to the GNLS FIT indicates that model M1 with the inclusion of a power error variance model was selected as the top model fit. M1 indicates models with both crown area and height as explanatory variables. M2 indicates models with only crown area as an explanatory variable.
 
 <br>
 
@@ -177,18 +207,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -242,18 +264,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -340,18 +354,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -402,18 +408,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -521,18 +519,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data_M1$AGL.g)
@@ -586,18 +576,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data_M2$AGL.g)
@@ -664,18 +646,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1,M1_check2,M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data_M1$AGL.g)
@@ -726,18 +700,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data_M2$AGL.g)
@@ -823,18 +789,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -888,18 +846,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -986,18 +936,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1048,18 +990,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1165,18 +1099,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1230,18 +1156,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1334,18 +1252,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1424,18 +1334,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1489,18 +1391,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1587,18 +1481,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1649,18 +1535,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1766,18 +1644,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1831,18 +1701,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1929,18 +1791,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -1991,18 +1845,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2110,18 +1956,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data_M1$AGL.g)
@@ -2175,18 +2013,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # check for SSE equivalency 
 SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
@@ -2267,18 +2097,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1,M1_check2,M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data_M1$AGL.g)
@@ -2329,18 +2151,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data_M2$AGL.g)
@@ -2426,18 +2240,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2491,18 +2297,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2589,18 +2387,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2651,18 +2441,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2768,18 +2550,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2833,18 +2607,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2931,18 +2697,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -2993,18 +2751,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3110,18 +2860,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3175,18 +2917,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3273,18 +3007,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3335,18 +3061,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3452,18 +3170,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3517,18 +3227,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3615,18 +3317,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3677,18 +3371,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3794,18 +3480,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3859,18 +3537,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -3957,18 +3627,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4019,32 +3681,10 @@ M2.1 <- gnls(AGL.g ~ b1*(CA.m2^b2),
 #             control = ctrl_2)
 
 # check for coefficient equivalency
-#M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-#M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-#M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-#M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-#M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-#M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-#M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
-
-# check for SSE equivalency 
-#SSE_M2.1 <- round(sum(resid(M2.1)^2), -2)
-#SSE_M2.2 <- round(sum(resid(M2.2)^2), -2)
-#SSE_M2.3 <- round(sum(resid(M2.3)^2), -2)
-#SSE_M2.4 <- round(sum(resid(M2.4)^2), -2)
-
-#M2_sse_check1 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.2))
-#M2_sse_check2 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.3))
-#M2_sse_check3 <- isTRUE(all.equal(SSE_M2.1, SSE_M2.4))
-
-#if(all(c(M2_sse_check1, M2_sse_check2, M2_sse_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+#M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+#M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+#M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+#M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 #meany <- mean(input_data$AGL.g)
@@ -4144,18 +3784,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4214,18 +3846,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4298,18 +3922,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4368,18 +3984,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4458,18 +4066,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4523,18 +4123,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-#if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4621,18 +4213,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4683,18 +4267,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4800,18 +4376,10 @@ M1.2_sum <- summary(M1.2)
 M1.3_sum <- summary(M1.3)
 M1.4_sum <- summary(M1.4)
 
-M1.1_coefs <- c(round(M1.1_sum$coef[1,1],2), round(M1.1_sum$coef[2,1],2), round(M1.1_sum$coef[3,1],2))
-M1.2_coefs <- c(round(M1.2_sum$coef[1,1],2), round(M1.2_sum$coef[2,1],2), round(M1.2_sum$coef[3,1],2))
-M1.3_coefs <- c(round(M1.3_sum$coef[1,1],2), round(M1.3_sum$coef[2,1],2), round(M1.3_sum$coef[3,1],2))
-M1.4_coefs <- c(round(M1.4_sum$coef[1,1],2), round(M1.4_sum$coef[2,1],2), round(M1.4_sum$coef[3,1],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-#if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-#    stop('Global solution NOT found!')
-#} 
+M1.1_coefs <- c(M1.1_sum$coef[1,1], M1.1_sum$coef[2,1], M1.1_sum$coef[3,1])
+M1.2_coefs <- c(M1.2_sum$coef[1,1], M1.2_sum$coef[2,1], M1.2_sum$coef[3,1])
+M1.3_coefs <- c(M1.3_sum$coef[1,1], M1.3_sum$coef[2,1], M1.3_sum$coef[3,1])
+M1.4_coefs <- c(M1.4_sum$coef[1,1], M1.4_sum$coef[2,1], M1.4_sum$coef[3,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4865,18 +4433,10 @@ M2.2_sum <- summary(M2.2)
 M2.3_sum <- summary(M2.3)
 M2.4_sum <- summary(M2.4)
 
-M2.1_coefs <- c(round(M2.1_sum$coef[1,1],2), round(M2.1_sum$coef[2,1],2))
-M2.2_coefs <- c(round(M2.2_sum$coef[1,1],2), round(M2.2_sum$coef[2,1],2))
-M2.3_coefs <- c(round(M2.3_sum$coef[1,1],2), round(M2.3_sum$coef[2,1],2))
-M2.4_coefs <- c(round(M2.4_sum$coef[1,1],2), round(M2.4_sum$coef[2,1],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1_sum$coef[1,1], M2.1_sum$coef[2,1])
+M2.2_coefs <- c(M2.2_sum$coef[1,1], M2.2_sum$coef[2,1])
+M2.3_coefs <- c(M2.3_sum$coef[1,1], M2.3_sum$coef[2,1])
+M2.4_coefs <- c(M2.4_sum$coef[1,1], M2.4_sum$coef[2,1])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -4963,18 +4523,10 @@ M1.4 <- gnls(AGL.g ~ b1*(CA.m2^b2)*(Hgt.m^b3),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M1.1_coefs <- c(round(M1.1$coef[[1]],2), round(M1.1$coef[[2]],2), round(M1.1$coef[[3]],2))
-M1.2_coefs <- c(round(M1.2$coef[[1]],2), round(M1.2$coef[[2]],2), round(M1.2$coef[[3]],2))
-M1.3_coefs <- c(round(M1.3$coef[[1]],2), round(M1.3$coef[[2]],2), round(M1.3$coef[[3]],2))
-M1.4_coefs <- c(round(M1.4$coef[[1]],2), round(M1.4$coef[[2]],2), round(M1.4$coef[[3]],2))
-
-M1_check1 <- isTRUE(all.equal(M1.1_coefs, M1.2_coefs))
-M1_check2 <- isTRUE(all.equal(M1.1_coefs, M1.3_coefs))
-M1_check3 <- isTRUE(all.equal(M1.1_coefs, M1.4_coefs))
-
-if(all(c(M1_check1, M1_check2, M1_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-} 
+M1.1_coefs <- c(M1.1$coef[[1]], M1.1$coef[[2]], M1.1$coef[[3]])
+M1.2_coefs <- c(M1.2$coef[[1]], M1.2$coef[[2]], M1.2$coef[[3]])
+M1.3_coefs <- c(M1.3$coef[[1]], M1.3$coef[[2]], M1.3$coef[[3]])
+M1.4_coefs <- c(M1.4$coef[[1]], M1.4$coef[[2]], M1.4$coef[[3]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)
@@ -5025,18 +4577,10 @@ M2.4 <- gnls(AGL.g ~ b1*(CA.m2^b2),
              control = ctrl_2)
 
 # check for coefficient equivalency
-M2.1_coefs <- c(round(M2.1$coef[[1]],2), round(M2.1$coef[[2]],2))
-M2.2_coefs <- c(round(M2.2$coef[[1]],2), round(M2.2$coef[[2]],2))
-M2.3_coefs <- c(round(M2.3$coef[[1]],2), round(M2.3$coef[[2]],2))
-M2.4_coefs <- c(round(M2.4$coef[[1]],2), round(M2.4$coef[[2]],2))
-
-M2_check1 <- isTRUE(all.equal(M2.1_coefs, M2.2_coefs))
-M2_check2 <- isTRUE(all.equal(M2.1_coefs, M2.3_coefs))
-M2_check3 <- isTRUE(all.equal(M2.1_coefs, M2.4_coefs))
-
-if(all(c(M2_check1, M2_check2, M2_check3)) != "TRUE") {
-    stop('Global solution NOT found!')
-}
+M2.1_coefs <- c(M2.1$coef[[1]], M2.1$coef[[2]])
+M2.2_coefs <- c(M2.2$coef[[1]], M2.2$coef[[2]])
+M2.3_coefs <- c(M2.3$coef[[1]], M2.3$coef[[2]])
+M2.4_coefs <- c(M2.4$coef[[1]], M2.4$coef[[2]])
 
 # Pseudo R2
 meany <- mean(input_data$AGL.g)

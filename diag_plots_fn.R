@@ -1,4 +1,3 @@
-
 diag_plots_nl <- function(model, data, y, type) {
 
   data$yhat <- fitted(model)
